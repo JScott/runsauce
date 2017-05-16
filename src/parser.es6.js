@@ -267,13 +267,13 @@ export function parse (argOverride = null) {
   return args;
 }
 
-function mapArgs (args) {
+function translateShorcuts (args) {
   const optMap = {
-    b: ['browser', browserMap],
-    p: ['platform', platformMap],
-    d: ['device', deviceMap],
-    f: ['framework', testFrameworkMap],
-    m: ['automationName', automationNameMap],
+    b: 'browser',
+    p: 'platform',
+    d: 'device',
+    f: 'framework',
+    m: 'automationName',
     a: 'backendVersion',
     o: 'orientation',
     v: 'version',
@@ -285,30 +285,40 @@ function mapArgs (args) {
     j: 'jsonToSumo',
     events: 'events',
   };
-  for (let [shortcut, nameSet] of _.pairs(optMap)) {
-    let name = nameSet;
-    let shortcutMap;
-    if (nameSet instanceof Array) {
-      [name, shortcutMap] = nameSet;
-    }
+  for (let [shortcut, name] of _.pairs(optMap)) {
     if ((args[name] && args[name] !== args[shortcut]) || !args[shortcut]) {
       continue;
     }
-    if (shortcutMap) {
-      if (args[shortcut] instanceof Array) {
-        args[name] = args[shortcut].map(v => shortcutMap[v.toLowerCase()] || v);
-      } else {
-        args[name] = shortcutMap[args[shortcut].toLowerCase()] || args[shortcut];
-      }
-    } else {
-      args[name] = args[shortcut];
-      if (name === "extraCaps") {
-        args[name] = JSON.parse(args[name]);
-      }
-    }
+    args[name] = args[shortcut];
     delete args[shortcut];
   }
   return args;
+}
+
+function parseValues (args) {
+  if (args["extraCaps"]) {
+    args["extraCaps"] = JSON.parse(args["extraCaps"]);
+  }
+  const optMap = {
+    'browser': browserMap,
+    'platform': platformMap,
+    'device': deviceMap,
+    'framework': testFrameworkMap,
+    'automationName': automationNameMap,
+  }
+  for (let [name, mapFunction] of _.pairs(optMap)) {
+    if (args[shortcut] instanceof Array) {
+      args[name] = args[shortcut].map(v => mapFunction[v.toLowerCase()] || v);
+    } else {
+      args[name] = mapFunction[args[shortcut].toLowerCase()] || args[shortcut];
+    }
+  }
+  return args;
+}
+
+function mapArgs (args) {
+  args = translateShorcuts(args);
+  return parseValues(args);
 }
 
 function prepareTestSet (opts, tests = null) {
